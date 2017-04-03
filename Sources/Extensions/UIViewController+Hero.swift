@@ -117,6 +117,21 @@ extension UINavigationController {
     get { return heroConfig.navigationAnimation.label }
     set { heroConfig.navigationAnimation = newValue?.parseOne() ?? .auto }
   }
+  
+  /**
+   Replace the navigation controllers stack with an array of view controllers
+   */
+  public func hero_replaceStack(with viewControllers: [UIViewController]) {
+    if Hero.shared.transitioning {
+      print("hero_replaceStack cancelled because Hero was doing a transition. Use Hero.shared.cancel(animated:false) or Hero.shared.end(animated:false) to stop the transition first before calling hero_replaceStack.")
+      return
+    }
+    
+    if self.isHeroEnabled {
+      Hero.shared.forceNotInteractive = true
+    }
+    self.setViewControllers(viewControllers, animated: true)
+  }
 }
 
 extension UITabBarController {
