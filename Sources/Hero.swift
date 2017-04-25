@@ -293,8 +293,8 @@ internal extension Hero {
 }
 
 // custom transition helper, used in hero_replaceViewController
-internal extension Hero {
-  func transition(from: UIViewController, to: UIViewController, in view: UIView, completion: ((Bool) -> Void)? = nil) {
+public extension Hero {
+  public func transition(from: UIViewController, to: UIViewController, in view: UIView, completion: ((Bool) -> Void)? = nil) {
     guard !transitioning else { return }
     presenting = true
     transitionContainer = view
