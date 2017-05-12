@@ -170,7 +170,7 @@ extension HeroContext {
 
           // take a snapshot without the background
           barView.layer.sublayers![0].opacity = 0
-          let realSnapshot = barView.snapshotView(afterScreenUpdates: true)!
+          let realSnapshot = barView.snapshotView(afterScreenUpdates: true) ?? UIView()
           barView.layer.sublayers![0].opacity = 1
 
           newBarView.addSubview(realSnapshot)
@@ -179,7 +179,7 @@ extension HeroContext {
           snapshot = UIVisualEffectView(effect: effectView.effect)
           snapshot.frame = effectView.bounds
         } else {
-          snapshot = view.snapshotView(afterScreenUpdates: true)!
+          snapshot = view.snapshotView(afterScreenUpdates: true) ?? UIView()
         }
       #endif
     }
