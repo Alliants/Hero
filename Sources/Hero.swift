@@ -295,8 +295,8 @@ internal extension Hero {
 }
 
 // custom transition helper, used in hero_replaceViewController
-internal extension Hero {
-  func transition(from: UIViewController, to: UIViewController, in view: UIView, completion: ((Bool) -> Void)? = nil) {
+public extension Hero {
+  public func transition(from: UIViewController, to: UIViewController, in view: UIView, completion: ((Bool) -> Void)? = nil) {
     guard !transitioning else { return }
     presenting = true
     transitionContainer = view
@@ -397,6 +397,16 @@ extension Hero: UINavigationControllerDelegate {
 
   public func navigationController(_ navigationController: UINavigationController, interactionControllerFor animationController: UIViewControllerAnimatedTransitioning) -> UIViewControllerInteractiveTransitioning? {
     return interactiveTransitioning
+  }
+  
+  public func navigationController(_ navigationController: UINavigationController, willShow viewController: UIViewController, animated: Bool) {
+    // Forward to previousNavigationDelegate
+    navigationController.previousNavigationDelegate?.navigationController?(navigationController, willShow: viewController, animated: animated)
+  }
+  
+  public func navigationController(_ navigationController: UINavigationController, didShow viewController: UIViewController, animated: Bool) {
+    // Forward to previousNavigationDelegate
+    navigationController.previousNavigationDelegate?.navigationController?(navigationController, didShow: viewController, animated: animated)
   }
 }
 
