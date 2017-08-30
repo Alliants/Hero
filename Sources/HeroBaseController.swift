@@ -64,7 +64,7 @@ public class HeroBaseController: NSObject {
   public internal(set) var container: UIView!
 
   /// this is the container supplied by UIKit
-  internal var transitionContainer: UIView!
+  internal var transitionContainer: UIView?
 
   internal var completionCallback: ((Bool) -> Void)?
 
@@ -252,14 +252,15 @@ internal extension HeroBaseController {
       animators.append(plugin)
     }
 
-    transitionContainer.isUserInteractionEnabled = false
+    transitionContainer?.isUserInteractionEnabled = false
 
     // a view to hold all the animating views
-    container = UIView(frame: transitionContainer.bounds)
-    transitionContainer.addSubview(container)
-
+    container = UIView(frame: transitionContainer?.bounds ?? .zero)
+    
+    transitionContainer?.addSubview(container)
+    
     context = HeroContext(container:container)
-
+    
     for processor in processors {
       processor.context = context
     }
