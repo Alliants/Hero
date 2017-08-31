@@ -67,7 +67,7 @@ public class Hero: HeroBaseController {
   /// might be nil when transitioning. This happens when calling heroReplaceViewController
   internal weak var transitionContext: UIViewControllerContextTransitioning?
 
-  internal var fullScreenSnapshot: UIView!
+  internal var fullScreenSnapshot: UIView?
 
   internal var defaultAnimation: HeroDefaultAnimationType = .auto
   internal var containerColor: UIColor?
@@ -85,14 +85,14 @@ public class Hero: HeroBaseController {
     return inNavigationController || inTabBarController
   }
   internal var toOverFullScreen: Bool {
-    return !inContainerController && (toViewController!.modalPresentationStyle == .overFullScreen || toViewController!.modalPresentationStyle == .overCurrentContext)
+    return !inContainerController && (toViewController?.modalPresentationStyle == .overFullScreen || toViewController?.modalPresentationStyle == .overCurrentContext)
   }
   internal var fromOverFullScreen: Bool {
-    return !inContainerController && (fromViewController!.modalPresentationStyle == .overFullScreen || fromViewController!.modalPresentationStyle == .overCurrentContext)
+    return !inContainerController && (fromViewController?.modalPresentationStyle == .overFullScreen || fromViewController?.modalPresentationStyle == .overCurrentContext)
   }
 
-  internal var toView: UIView { return toViewController!.view }
-  internal var fromView: UIView { return fromViewController!.view }
+  internal var toView: UIView? { return toViewController?.view }
+  internal var fromView: UIView? { return fromViewController?.view }
 
   internal override init() { super.init() }
 }
@@ -124,6 +124,13 @@ public extension Hero {
 internal extension Hero {
   func start() {
     guard transitioning else { return }
+    
+    if let toView = toView, let fromView = fromView {
+      toView.frame = fromView.frame
+      toView.setNeedsLayout()
+      toView.layoutIfNeeded()
+    }
+    
     if let fvc = fromViewController, let tvc = toViewController {
       closureProcessForHeroDelegate(vc: fvc) {
         $0.heroWillStartTransition?()
@@ -137,8 +144,10 @@ internal extension Hero {
     }
 
     // take a snapshot to hide all the flashing that might happen
-    fullScreenSnapshot = transitionContainer.window?.snapshotView(afterScreenUpdates: true) ?? fromView.snapshotView(afterScreenUpdates: true)
-    (transitionContainer.window ?? transitionContainer)?.addSubview(fullScreenSnapshot)
+    fullScreenSnapshot = transitionContainer?.window?.snapshotView(afterScreenUpdates: true) ?? fromView?.snapshotView(afterScreenUpdates: true)
+    if let fullScreenSnapshot = fullScreenSnapshot {
+      (transitionContainer?.window ?? transitionContainer)?.addSubview(fullScreenSnapshot)
+    }
 
     if let oldSnapshot = fromViewController?.heroStoredSnapshot {
       oldSnapshot.removeFromSuperview()
@@ -152,22 +161,26 @@ internal extension Hero {
     prepareForTransition()
     insert(preprocessor: DefaultAnimationPreprocessor(hero: self), before: DurationPreprocessor.self)
 
-    context.loadViewAlpha(rootView: toView)
-    context.loadViewAlpha(rootView: fromView)
-    container.addSubview(toView)
-    container.addSubview(fromView)
-
-    toView.frame = fromView.frame
-    toView.updateConstraints()
-    toView.setNeedsLayout()
-    toView.layoutIfNeeded()
-
-    context.set(fromViews: fromView.flattenedViewHierarchy, toViews: toView.flattenedViewHierarchy)
+    if let toView = toView, let fromView = fromView {
+      context.loadViewAlpha(rootView: toView)
+      context.loadViewAlpha(rootView: fromView)
+      container?.addSubview(toView)
+      container?.addSubview(fromView)
+      
+      toView.updateConstraints()
+      toView.setNeedsLayout()
+      toView.layoutIfNeeded()
+      
+      context.set(fromViews: fromView.flattenedViewHierarchy, toViews: toView.flattenedViewHierarchy)
+    }
+    
 
     processContext()
     prepareForAnimation()
 
-    context.hide(view: toView)
+    if let toView = toView {
+      context.hide(view: toView)
+    }
 
     #if os(tvOS)
       animate()
@@ -185,12 +198,15 @@ internal extension Hero {
   }
 
   override func animate() {
-    context.unhide(view: toView)
+    
+    if let toView = toView {
+      context.unhide(view: toView)
+    }
 
     if let containerColor = containerColor {
-      container.backgroundColor = containerColor
+      container?.backgroundColor = containerColor
     } else if !toOverFullScreen && !fromOverFullScreen {
-      container.backgroundColor = toView.backgroundColor
+      container?.backgroundColor = toView?.backgroundColor
     }
 
     if fromOverFullScreen {
@@ -204,44 +220,48 @@ internal extension Hero {
 
     super.animate()
 
-    fullScreenSnapshot!.removeFromSuperview()
+    fullScreenSnapshot?.removeFromSuperview()
   }
 
   override func complete(finished: Bool) {
     guard transitioning else { return }
 
-    if finished && presenting && toOverFullScreen {
-      // finished presenting a overFullScreen VC
-      context.unhide(rootView: toView)
-      context.removeSnapshots(rootView: toView)
-      context.storeViewAlpha(rootView: fromView)
-      fromViewController!.heroStoredSnapshot = container
-      fromView.removeFromSuperview()
-      fromView.addSubview(container)
-    } else if !finished && !presenting && fromOverFullScreen {
-      // cancelled dismissing a overFullScreen VC
-      context.unhide(rootView: fromView)
-      context.removeSnapshots(rootView: fromView)
-      context.storeViewAlpha(rootView: toView)
-      toViewController!.heroStoredSnapshot = container
-      toView.removeFromSuperview()
-      toView.addSubview(container)
-    } else {
-      context.unhideAll()
-      context.removeAllSnapshots()
-      container.removeFromSuperview()
-    }
+    if let toView = toView, let fromView = fromView {
+      
+      if finished && presenting && toOverFullScreen {
+        // finished presenting a overFullScreen VC
+        context.unhide(rootView: toView)
+        context.removeSnapshots(rootView: toView)
+        context.storeViewAlpha(rootView: fromView)
+        fromViewController?.heroStoredSnapshot = container
+        fromView.removeFromSuperview()
+        fromView.addSubview(container)
+      } else if !finished && !presenting && fromOverFullScreen {
+        // cancelled dismissing a overFullScreen VC
+        context.unhide(rootView: fromView)
+        context.removeSnapshots(rootView: fromView)
+        context.storeViewAlpha(rootView: toView)
+        toViewController?.heroStoredSnapshot = container
+        toView.removeFromSuperview()
+        toView.addSubview(container)
+      } else {
+        context.unhideAll()
+        context.removeAllSnapshots()
+        container?.removeFromSuperview()
+      }
 
-    // move fromView & toView back from our container back to the one supplied by UIKit
-    if (toOverFullScreen && finished) || (fromOverFullScreen && !finished) {
-      transitionContainer.addSubview(finished ? fromView : toView)
-    }
-    transitionContainer.addSubview(finished ? toView : fromView)
+      // move fromView & toView back from our container back to the one supplied by UIKit
+      if (toOverFullScreen && finished) || (fromOverFullScreen && !finished) {
+        transitionContainer?.addSubview(finished ? fromView : toView)
+      }
+      transitionContainer?.addSubview(finished ? toView : fromView)
 
-    if presenting != finished, !inContainerController {
-      // only happens when present a .overFullScreen VC
-      // bug: http://openradar.appspot.com/radar?id=5320103646199808
-      UIApplication.shared.keyWindow!.addSubview(presenting ? fromView : toView)
+      if presenting != finished, !inContainerController {
+        // only happens when present a .overFullScreen VC
+        // bug: http://openradar.appspot.com/radar?id=5320103646199808
+        UIApplication.shared.keyWindow?.addSubview(presenting ? fromView : toView)
+      }
+      
     }
 
     // use temp variables to remember these values
